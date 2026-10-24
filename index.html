@@ -19,7 +19,7 @@
       color: #333;
     }
     .container {
-      max-width: 950px;
+      max-width: 980px;
       margin: 0 auto;
       background: #ffffff;
       padding: 16px;
@@ -35,7 +35,7 @@
     .search-box {
       display: flex;
       gap: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
     input {
       flex: 1;
@@ -46,8 +46,8 @@
       outline: none;
     }
     input:focus { border-color: var(--primary); }
-    button {
-      padding: 0 20px;
+    button.btn-search {
+      padding: 0 22px;
       background: var(--primary);
       color: white;
       border: none;
@@ -56,11 +56,20 @@
       font-weight: bold;
       cursor: pointer;
     }
+    button.btn-sync {
+      padding: 0 12px;
+      background: #eceff1;
+      color: #455a64;
+      border: 1px solid #cfd8dc;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
     .status-msg {
       font-size: 0.85rem;
       color: #777;
       text-align: center;
-      margin-bottom: 10px;
+      margin-bottom: 12px;
     }
     .empty-msg {
       display: none;
@@ -116,7 +125,8 @@
     }
     .grid {
       display: inline-grid;
-      grid-template-columns: 36px repeat(26, 44px);
+      /* 左側高度標籤寬 52px (容納「第X層」) + 26個字母欄各寬 44px */
+      grid-template-columns: 52px repeat(26, 44px);
       gap: 3px;
       user-select: none;
     }
@@ -126,10 +136,10 @@
       justify-content: center;
       font-size: 11px;
       font-weight: bold;
-      color: #78909c;
+      color: #546e7a;
     }
     .axis-y { height: 26px; }
-    .axis-x { width: 36px; height: 44px; }
+    .axis-x { width: 52px; height: 44px; white-space: nowrap; }
 
     .cell {
       width: 44px;
@@ -167,20 +177,21 @@
   <h2>📍 服務台物品儲位查詢系統</h2>
   
   <div class="search-box">
-    <input type="text" id="keyword" placeholder="輸入物品名稱或編號 (例: 剪刀 或 00001)" autofocus>
-    <button onclick="handleSearch()">查詢</button>
+    <input type="text" id="keyword" placeholder="請輸入物品編號 (例: 00001)" autofocus>
+    <button class="btn-search" onclick="handleSearch()">查詢</button>
+    <button class="btn-sync" onclick="syncData(true)" title="立即同步最新資料">🔄 同步</button>
   </div>
   
-  <div id="status" class="status-msg">正在載入試算表資料...</div>
-  <div id="emptyNotice" class="empty-msg">⚠️ 查無此物品，暫無該筆資料！</div>
+  <div id="status" class="status-msg">正在連線至試算表...</div>
+  <div id="emptyNotice" class="empty-msg">⚠️ 查無此物品編號，暫無該筆資料！</div>
 
   <!-- 查詢結果資訊 -->
   <div id="infoCard" class="info-card">
     <h3 id="itemTitle">物品名稱</h3>
-    <div>物品編號：<span id="itemId"></span></div>
+    <div>物品編號：<b><span id="itemId"></span></b></div>
     <div>位置代碼：<span id="itemLoc" class="loc-badge"></span></div>
     <div>實體位置：<b><span id="itemFloor"></span> 樓 ｜ <span id="itemPillar"></span> 柱</b></div>
-    <div>櫃位座標：<b>橫向 Y軸：<span id="itemY"></span> 列 ｜ 高度 X軸：<span id="itemX"></span> 層</b></div>
+    <div>櫃位座標：<b>橫向 Y軸：<span id="itemY"></span> 列 ｜ 高度 X軸：第 <span id="itemX"></span> 層</b></div>
   </div>
 
   <!-- 柱位 260 格透視圖 -->
@@ -196,25 +207,31 @@
 </div>
 
 <script>
-  // 🔴 請將此處替換為您在 Apps Script 發布的「網頁應用程式網址」
+  // 🔴 請保留您在 Apps Script 發布的 API 網址
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw9v_3yk3k8pzsB2Aw95w-FC8hNsLqpetwlAN75SuSZg7xOswhy9jZtacBUkSu2YIaE/exec";
 
   const Y_AXIS_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
   let inventoryList = [];
 
-  // 1. 初始化讀取試算表
-  async function init() {
+  // 1. 同步最新資料 (加上時間戳記防止快取)
+  async function syncData(manual = false) {
+    const statusEl = document.getElementById("status");
+    if (manual) statusEl.innerText = "⏳ 正在同步最新資料中...";
+
     try {
-      const res = await fetch(SCRIPT_URL);
+      const noCacheUrl = `${SCRIPT_URL}?_t=${new Date().getTime()}`;
+      const res = await fetch(noCacheUrl);
       inventoryList = await res.json();
-      document.getElementById("status").innerText = `🟢 資料庫連線正常 (目前在庫 ${inventoryList.length} 筆物料)`;
+      statusEl.innerText = `🟢 資料庫連線正常 (目前在庫 ${inventoryList.length} 筆物料)`;
+      return true;
     } catch (err) {
-      document.getElementById("status").innerText = "🔴 連線失敗，請檢查網路或 Google 授權設定。";
+      statusEl.innerText = "🔴 連線失敗，請檢查網路或 Google 授權。";
+      return false;
     }
   }
 
   // 2. 執行查詢
-  function handleSearch() {
+  async function handleSearch() {
     const kw = document.getElementById("keyword").value.trim().toLowerCase();
     const emptyNotice = document.getElementById("emptyNotice");
     const infoCard = document.getElementById("infoCard");
@@ -226,21 +243,26 @@
 
     if (!kw) return;
 
-    // 模糊比對物品名稱，或精準比對物品ID、位置代碼
-    const item = inventoryList.find(d => 
-      d.name.toLowerCase().includes(kw) || 
-      d.id.toLowerCase() === kw || 
-      d.location.toLowerCase() === kw
-    );
+    let item = findItem(kw);
 
-    // 查詢不到
+    // 本地找不到時，自動向 Google 試算表即時重抓一次確認
+    if (!item) {
+      document.getElementById("status").innerText = "🔍 本地查無，正在向 Google 試算表同步最新資料...";
+      await syncData();
+      item = findItem(kw);
+    }
+
     if (!item) {
       emptyNotice.style.display = "block";
       return;
     }
 
-    // 查詢成功，繪製畫面
     renderView(item);
+  }
+
+  // 【核心修改】：只依「物品編號 (ID)」進行比對，杜絕同名誤判！
+  function findItem(kw) {
+    return inventoryList.find(d => d.id.toLowerCase() === kw);
   }
 
   // 3. 繪製結果卡片與 260 格櫃體
@@ -259,10 +281,10 @@
     const grid = document.getElementById("gridContainer");
     grid.innerHTML = "";
 
-    // 頂部 Y軸 字母標籤 (左上空白角 + A~Z)
+    // 頂部 Y軸 字母標籤
     const corner = document.createElement("div");
     corner.className = "axis-label axis-y";
-    corner.innerText = "X\\Y";
+    corner.innerText = "層\\列";
     grid.appendChild(corner);
 
     for (let y of Y_AXIS_LETTERS) {
@@ -274,21 +296,18 @@
 
     let targetElement = null;
 
-    // 由高度 9 樓排到 0 樓 (由上而下繪製，最底下為 0 層)
+    // 【核心修改】：高度改為「第9層」~「第0層」，新進人員一目瞭然！
     for (let x = 9; x >= 0; x--) {
-      // 每一列最左邊的高度標籤
       const xLabel = document.createElement("div");
       xLabel.className = "axis-label axis-x";
-      xLabel.innerText = `${x}F`;
+      xLabel.innerText = `第${x}層`;
       grid.appendChild(xLabel);
 
-      // 橫向繪製 26 個儲存格
       for (let y of Y_AXIS_LETTERS) {
         const cell = document.createElement("div");
         cell.className = "cell";
         cell.innerHTML = `<span>${y}</span><span>${x}</span>`;
 
-        // 命中目標儲位
         if (y === item.y && x === item.x) {
           cell.classList.add("active");
           cell.innerHTML = `★<br><b style="font-size:8px;">${item.name}</b>`;
@@ -299,7 +318,7 @@
       }
     }
 
-    // 手機貼心自動對焦：將目標儲存格滾動至視野正中央
+    // 自動滾動聚焦
     if (targetElement) {
       setTimeout(() => {
         targetElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
@@ -307,12 +326,11 @@
     }
   }
 
-  // 支援鍵盤 Enter 快速查詢
   document.getElementById("keyword").addEventListener("keypress", (e) => {
     if (e.key === "Enter") handleSearch();
   });
 
-  init();
+  syncData();
 </script>
 </body>
 </html>
