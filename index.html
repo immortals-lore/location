@@ -176,12 +176,16 @@
 <div class="container">
   <h2>📍 服務台物品儲位查詢系統</h2>
   
-  <div class="search-box">
+<div class="search-box">
+  <!-- 新增一個包裹層 -->
+  <div class="input-group">
     <input type="text" id="keyword" placeholder="請輸入物品編號 (例: 00001)" autofocus>
-    <div class="hint-text">(目前僅有 00001, 00002, 00003, 三筆資料)</div> 
-    <button class="btn-search" onclick="handleSearch()">查詢</button>
-    <button class="btn-sync" onclick="syncData(true)" title="立即同步最新資料">🔄 同步</button>
+    <div class="hint-text">(目前僅有 00001, 00002, 00003, 三筆資料)</div>
   </div>
+  
+  <button class="btn-search" onclick="handleSearch()">查詢</button>
+  <button class="btn-sync" onclick="syncData(true)" title="立即同步最新資料">🔄 同步</button>
+</div>
   
   <div id="status" class="status-msg">正在連線至試算表...</div>
   <div id="emptyNotice" class="empty-msg">⚠️ 查無此物品編號，暫無該筆資料！</div>
