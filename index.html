@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>倉儲物料視覺化查詢系統</title>
+  <style>
+    :root {
+      --primary: #1a237e;
+      --highlight: #ffb74d;        /* 淡橘色目標格 */
+      --highlight-border: #f57c00; /* 深橘色邊框 */
+      --bg: #f4f6fa;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      margin: 0;
+      padding: 12px;
+      color: #333;
+    }
+    .container {
+      max-width: 950px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.06);
+    }
+    h2 {
+      margin: 0 0 14px 0;
+      text-align: center;
+      color: var(--primary);
+      font-size: 1.3rem;
+    }
+    .search-box {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    input {
+      flex: 1;
+      padding: 12px;
+      border: 1.5px solid #bbb;
+      border-radius: 8px;
+      font-size: 16px;
+      outline: none;
+    }
+    input:focus { border-color: var(--primary); }
+    button {
+      padding: 0 20px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .status-msg {
+      font-size: 0.85rem;
+      color: #777;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    .empty-msg {
+      display: none;
+      background: #fff3e0;
+      border: 1px solid #ffe0b2;
+      color: #e65100;
+      padding: 12px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+    /* 資訊卡片 */
+    .info-card {
+      display: none;
+      background: #eef2f7;
+      border-left: 5px solid var(--primary);
+      padding: 14px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      line-height: 1.6;
+    }
+    .info-card h3 { margin: 0 0 6px 0; color: var(--primary); font-size: 1.2rem; }
+    .loc-badge {
+      display: inline-block;
+      background: #263238;
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    /* 視覺化透視圖 */
+    .cabinet-area {
+      display: none;
+      margin-top: 15px;
+    }
+    .cabinet-header {
+      font-size: 0.95rem;
+      font-weight: bold;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      color: #333;
+    }
+    .scroll-wrapper {
+      overflow-x: auto;
+      border: 1.5px solid #cfd8dc;
+      border-radius: 8px;
+      background: #fafafa;
+      padding: 10px;
+    }
+    .grid {
+      display: inline-grid;
+      grid-template-columns: 36px repeat(26, 44px);
+      gap: 3px;
+      user-select: none;
+    }
+    .axis-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: bold;
+      color: #78909c;
+    }
+    .axis-y { height: 26px; }
+    .axis-x { width: 36px; height: 44px; }
+
+    .cell {
+      width: 44px;
+      height: 44px;
+      background: #ffffff;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      color: #b0bec5;
+      box-sizing: border-box;
+    }
+    /* 目標儲存格：淡橘色高亮與光暈效果 */
+    .cell.active {
+      background: var(--highlight) !important;
+      color: #bf360c !important;
+      border: 2px solid var(--highlight-border);
+      font-weight: bold;
+      animation: pulse 1.6s infinite;
+      z-index: 2;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 183, 77, 0.7); }
+      70% { transform: scale(1.06); box-shadow: 0 0 0 6px rgba(255, 183, 77, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 183, 77, 0); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h2>📍 服務台物品儲位查詢系統</h2>
+  
+  <div class="search-box">
+    <input type="text" id="keyword" placeholder="輸入物品名稱或編號 (例: 剪刀 或 00001)" autofocus>
+    <button onclick="handleSearch()">查詢</button>
+  </div>
+  
+  <div id="status" class="status-msg">正在載入試算表資料...</div>
+  <div id="emptyNotice" class="empty-msg">⚠️ 查無此物品，暫無該筆資料！</div>
+
+  <!-- 查詢結果資訊 -->
+  <div id="infoCard" class="info-card">
+    <h3 id="itemTitle">物品名稱</h3>
+    <div>物品編號：<span id="itemId"></span></div>
+    <div>位置代碼：<span id="itemLoc" class="loc-badge"></span></div>
+    <div>實體位置：<b><span id="itemFloor"></span> 樓 ｜ <span id="itemPillar"></span> 柱</b></div>
+    <div>櫃位座標：<b>橫向 Y軸：<span id="itemY"></span> 列 ｜ 高度 X軸：<span id="itemX"></span> 層</b></div>
+  </div>
+
+  <!-- 柱位 260 格透視圖 -->
+  <div class="cabinet-area" id="cabinetArea">
+    <div class="cabinet-header">
+      <span>透視圖（正面視角：高 10 層 × 寬 26 格）</span>
+      <span style="color:var(--highlight-border);">● 淡橘色為存放位置</span>
+    </div>
+    <div class="scroll-wrapper" id="scrollWrapper">
+      <div id="gridContainer" class="grid"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // 🔴 請將此處替換為您在 Apps Script 發布的「網頁應用程式網址」
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw9v_3yk3k8pzsB2Aw95w-FC8hNsLqpetwlAN75SuSZg7xOswhy9jZtacBUkSu2YIaE/exec";
+
+  const Y_AXIS_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  let inventoryList = [];
+
+  // 1. 初始化讀取試算表
+  async function init() {
+    try {
+      const res = await fetch(SCRIPT_URL);
+      inventoryList = await res.json();
+      document.getElementById("status").innerText = `🟢 資料庫連線正常 (目前在庫 ${inventoryList.length} 筆物料)`;
+    } catch (err) {
+      document.getElementById("status").innerText = "🔴 連線失敗，請檢查網路或 Google 授權設定。";
+    }
+  }
+
+  // 2. 執行查詢
+  function handleSearch() {
+    const kw = document.getElementById("keyword").value.trim().toLowerCase();
+    const emptyNotice = document.getElementById("emptyNotice");
+    const infoCard = document.getElementById("infoCard");
+    const cabinetArea = document.getElementById("cabinetArea");
+
+    emptyNotice.style.display = "none";
+    infoCard.style.display = "none";
+    cabinetArea.style.display = "none";
+
+    if (!kw) return;
+
+    // 模糊比對物品名稱，或精準比對物品ID、位置代碼
+    const item = inventoryList.find(d => 
+      d.name.toLowerCase().includes(kw) || 
+      d.id.toLowerCase() === kw || 
+      d.location.toLowerCase() === kw
+    );
+
+    // 查詢不到
+    if (!item) {
+      emptyNotice.style.display = "block";
+      return;
+    }
+
+    // 查詢成功，繪製畫面
+    renderView(item);
+  }
+
+  // 3. 繪製結果卡片與 260 格櫃體
+  function renderView(item) {
+    document.getElementById("infoCard").style.display = "block";
+    document.getElementById("cabinetArea").style.display = "block";
+
+    document.getElementById("itemTitle").innerText = item.name;
+    document.getElementById("itemId").innerText = item.id;
+    document.getElementById("itemLoc").innerText = item.location;
+    document.getElementById("itemFloor").innerText = item.floor;
+    document.getElementById("itemPillar").innerText = item.pillar;
+    document.getElementById("itemY").innerText = item.y;
+    document.getElementById("itemX").innerText = item.x;
+
+    const grid = document.getElementById("gridContainer");
+    grid.innerHTML = "";
+
+    // 頂部 Y軸 字母標籤 (左上空白角 + A~Z)
+    const corner = document.createElement("div");
+    corner.className = "axis-label axis-y";
+    corner.innerText = "X\\Y";
+    grid.appendChild(corner);
+
+    for (let y of Y_AXIS_LETTERS) {
+      const yLabel = document.createElement("div");
+      yLabel.className = "axis-label axis-y";
+      yLabel.innerText = y;
+      grid.appendChild(yLabel);
+    }
+
+    let targetElement = null;
+
+    // 由高度 9 樓排到 0 樓 (由上而下繪製，最底下為 0 層)
+    for (let x = 9; x >= 0; x--) {
+      // 每一列最左邊的高度標籤
+      const xLabel = document.createElement("div");
+      xLabel.className = "axis-label axis-x";
+      xLabel.innerText = `${x}F`;
+      grid.appendChild(xLabel);
+
+      // 橫向繪製 26 個儲存格
+      for (let y of Y_AXIS_LETTERS) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.innerHTML = `<span>${y}</span><span>${x}</span>`;
+
+        // 命中目標儲位
+        if (y === item.y && x === item.x) {
+          cell.classList.add("active");
+          cell.innerHTML = `★<br><b style="font-size:8px;">${item.name}</b>`;
+          targetElement = cell;
+        }
+
+        grid.appendChild(cell);
+      }
+    }
+
+    // 手機貼心自動對焦：將目標儲存格滾動至視野正中央
+    if (targetElement) {
+      setTimeout(() => {
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      }, 180);
+    }
+  }
+
+  // 支援鍵盤 Enter 快速查詢
+  document.getElementById("keyword").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") handleSearch();
+  });
+
+  init();
+</script>
+</body>
+</html>
