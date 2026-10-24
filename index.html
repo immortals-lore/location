@@ -27,11 +27,36 @@
       box-shadow: 0 4px 15px rgba(0,0,0,0.06);
     }
     h2 {
-      margin: 0 0 14px 0;
+      margin: 0 0 10px 0;
       text-align: center;
       color: var(--primary);
       font-size: 1.3rem;
     }
+
+    /* 💡 測試階段專屬提示橫幅 (日後正式上線只需刪除此區塊即可) */
+    .test-notice {
+      background: #fff8e1;
+      border: 1px dashed #ffa000;
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 14px;
+      font-size: 0.88rem;
+      color: #b76e00;
+      text-align: center;
+      line-height: 1.6;
+    }
+    .test-notice code {
+      background: #ffffff;
+      color: #d84315;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+      border: 1px solid #ffd54f;
+      margin: 0 2px;
+      font-family: monospace;
+    }
+
+    /* 搜尋列結構 (完美還原對齊，絕不跑版) */
     .search-box {
       display: flex;
       gap: 8px;
@@ -82,6 +107,7 @@
       margin-bottom: 15px;
       font-weight: bold;
     }
+
     /* 資訊卡片 */
     .info-card {
       display: none;
@@ -103,6 +129,7 @@
       font-weight: bold;
       letter-spacing: 1px;
     }
+
     /* 視覺化透視圖 */
     .cabinet-area {
       display: none;
@@ -125,7 +152,6 @@
     }
     .grid {
       display: inline-grid;
-      /* 左側高度標籤寬 52px (容納「第X層」) + 26個字母欄各寬 44px */
       grid-template-columns: 52px repeat(26, 44px);
       gap: 3px;
       user-select: none;
@@ -155,7 +181,6 @@
       color: #b0bec5;
       box-sizing: border-box;
     }
-    /* 目標儲存格：淡橘色高亮與光暈效果 */
     .cell.active {
       background: var(--highlight) !important;
       color: #bf360c !important;
@@ -175,20 +200,21 @@
 
 <div class="container">
   <h2>📍 服務台物品儲位查詢系統</h2>
-  
+
+  <!-- 💡 測試階段專屬提示橫幅：日後正式對外公開時，只要刪除這一段即可 -->
+  <div id="testNotice" class="test-notice">
+    ⚠️ <b>【系統內部測試中】</b> 本系統尚未正式對外公開，目前僅提供 <code>00001</code>、<code>00002</code>、<code>00003</code> 三筆資料供測試查詢。
+  </div>
+
   <div class="search-box">
-    <!-- 修改這裡：將 input 與提示字獨立打包，使其能完美垂直堆疊而不干擾右邊的按鈕 -->
-    <div class="input-wrapper">
-      <input type="text" id="keyword" placeholder="請輸入物品編號 (例: 00001)" autofocus>
-      <div class="hint-text">(目前僅有 00001, 00002, 00003, 三筆資料)</div> 
-    </div>
-    
+    <input type="text" id="keyword" placeholder="請輸入物品編號 (例: 00001)" autofocus>
     <button class="btn-search" onclick="handleSearch()">查詢</button>
     <button class="btn-sync" onclick="syncData(true)" title="立即同步最新資料">🔄 同步</button>
   </div>
   
   <div id="status" class="status-msg">正在連線至試算表...</div>
   <div id="emptyNotice" class="empty-msg">⚠️ 查無此物品編號，暫無該筆資料！</div>
+
   <!-- 查詢結果資訊 -->
   <div id="infoCard" class="info-card">
     <h3 id="itemTitle">物品名稱</h3>
@@ -211,7 +237,7 @@
 </div>
 
 <script>
-  // 🔴 請保留您在 Apps Script 發布的 API 網址
+  // 🔴 您的 Google Apps Script API 網址 (已為您保留)
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw9v_3yk3k8pzsB2Aw95w-FC8hNsLqpetwlAN75SuSZg7xOswhy9jZtacBUkSu2YIaE/exec";
 
   const Y_AXIS_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -264,7 +290,7 @@
     renderView(item);
   }
 
-  // 【核心修改】：只依「物品編號 (ID)」進行比對，杜絕同名誤判！
+  // 只依「物品編號 (ID)」進行比對
   function findItem(kw) {
     return inventoryList.find(d => d.id.toLowerCase() === kw);
   }
@@ -300,7 +326,7 @@
 
     let targetElement = null;
 
-    // 【核心修改】：高度改為「第9層」~「第0層」，新進人員一目瞭然！
+    // 高度「第9層」~「第0層」
     for (let x = 9; x >= 0; x--) {
       const xLabel = document.createElement("div");
       xLabel.className = "axis-label axis-x";
