@@ -176,20 +176,19 @@
 <div class="container">
   <h2>📍 服務台物品儲位查詢系統</h2>
   
-<div class="search-box">
-  <!-- 新增一個包裹層 -->
-  <div class="input-group">
-    <input type="text" id="keyword" placeholder="請輸入物品編號 (例: 00001)" autofocus>
-    <div class="hint-text">(目前僅有 00001, 00002, 00003, 三筆資料)</div>
+  <div class="search-box">
+    <!-- 修改這裡：將 input 與提示字獨立打包，使其能完美垂直堆疊而不干擾右邊的按鈕 -->
+    <div class="input-wrapper">
+      <input type="text" id="keyword" placeholder="請輸入物品編號 (例: 00001)" autofocus>
+      <div class="hint-text">(目前僅有 00001, 00002, 00003, 三筆資料)</div> 
+    </div>
+    
+    <button class="btn-search" onclick="handleSearch()">查詢</button>
+    <button class="btn-sync" onclick="syncData(true)" title="立即同步最新資料">🔄 同步</button>
   </div>
-  
-  <button class="btn-search" onclick="handleSearch()">查詢</button>
-  <button class="btn-sync" onclick="syncData(true)" title="立即同步最新資料">🔄 同步</button>
-</div>
   
   <div id="status" class="status-msg">正在連線至試算表...</div>
   <div id="emptyNotice" class="empty-msg">⚠️ 查無此物品編號，暫無該筆資料！</div>
-
   <!-- 查詢結果資訊 -->
   <div id="infoCard" class="info-card">
     <h3 id="itemTitle">物品名稱</h3>
