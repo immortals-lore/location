@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>倉儲物料視覺化查詢系統</title>
+  <title>服務台視覺化查詢系統</title>
   <style>
     :root {
       --primary: #1a237e;
@@ -199,7 +199,7 @@
 <body>
 
 <div class="container">
-  <h2>📍 服務台儲位查詢系統</h2>
+  <h2>📍 服務台視覺化查詢系統</h2>
 
 <!-- 💡 測試階段專屬提示橫幅：日後正式對外公開時，只要刪除這一段即可 -->
   <div id="testNotice" class="test-notice">
@@ -210,18 +210,18 @@
   </div>
 
   <div class="search-box">
-    <input type="text" id="keyword" placeholder="請輸入物品編號 (例: 00001)" autofocus>
+    <input type="text" id="keyword" placeholder="請輸入查詢編號 (例: 00001)" autofocus>
     <button class="btn-search" onclick="handleSearch()">查詢</button>
     <button class="btn-sync" onclick="syncData(true)" title="立即同步最新資料">🔄 同步</button>
   </div>
   
   <div id="status" class="status-msg">正在連線至試算表...</div>
-  <div id="emptyNotice" class="empty-msg">⚠️ 查無此物品編號，暫無該筆資料！</div>
+  <div id="emptyNotice" class="empty-msg">⚠️ 查無此查詢編號，暫無該筆資料！</div>
 
   <!-- 查詢結果資訊 -->
   <div id="infoCard" class="info-card">
     <h3 id="itemTitle">物品名稱</h3>
-    <div>物品編號：<b><span id="itemId"></span></b></div>
+    <div>儲位編號：<b><span id="itemId"></span></b></div>
     <div>位置代碼：<span id="itemLoc" class="loc-badge"></span></div>
     <div>實體位置：<b><span id="itemFloor"></span> 樓 ｜ <span id="itemPillar"></span> 柱</b></div>
     <div>櫃位座標：<b>橫向 Y軸：<span id="itemY"></span> 列 ｜ 高度 X軸：第 <span id="itemX"></span> 層</b></div>
